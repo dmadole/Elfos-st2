@@ -40,21 +40,27 @@ start:      org   2000h
 
             ; Build information
 
-            db    9+80h                 ; month
-            db    28                    ; day
+            db    10+80h                ; month
+            db    3                     ; day
             dw    2022                  ; year
-            dw    1                     ; build
+            dw    2                     ; build
 
             db    'See github.com/dmadole/Elfos-st2 for more info',0
 
 
            ; Main code starts here, check provided argument
 
-main:       req                         ; turn off in case already on
+main:       ldi   high file             ; to append filename to /st2 path
+            phi   rb
+            ldi   low file
+            plo   rb
 
 skpspac:    lda   ra                    ; skip any leading spaces, copy rom
             lbz   copyrom               ;  if no filename chars found
-            sdi   ' '
+
+            str   rb                    ; append to default path
+
+            sdi   ' '                   ; skip any whitespace
             lbdf  skpspac
 
             ghi   ra                    ; save pointer to position
@@ -64,9 +70,14 @@ skpspac:    lda   ra                    ; skip any leading spaces, copy rom
 
             dec   rf                    ; adjust to first character
 
-skpname:    lda   ra                    ; skip any non-space characters,
-            lbz   endname               ;  if end then go copy rom
-            sdi   ' '
+skpname:    lda   ra                    ; get next character
+
+            inc   rb                    ; append to default path
+            str   rb
+
+            lbz   endname               ; if end then go copy rom
+
+            sdi   ' '                   ; skip until whitespace
             lbnf  skpname
 
             dec   ra                    ; zero terminate over first space
@@ -83,6 +94,15 @@ endname:    plo   r7                    ; set flags to zero
             phi   rd
             ldi   low fildes
             plo   rd
+
+            sep   scall                 ; open file for read
+            dw    o_open
+            lbnf  opened
+
+            ldi   high path             ; try again with prefixed path
+            phi   rf
+            ldi   low path
+            plo   rf
 
             sep   scall                 ; open file for read
             dw    o_open
@@ -219,6 +239,8 @@ romloop:    lda   r7                    ; copy one byte of rom image
 
             phi   r0                    ; clear r0 which will be new pc
             plo   r0
+
+            req                         ; turn off in case already on
 
             sex   r3                    ; inline arguments for next opcodes
 
@@ -503,6 +525,9 @@ rom:        db    090h,0b1h,0b4h,0a5h,0abh,0f8h,008h,0b2h
             db    000h,060h,004h,027h,0bch,078h,001h,070h
             db    0ebh,017h,024h,04ch,0f1h,068h,006h,027h
             db    0bch,068h,004h,027h,0bch,017h,024h,0bbh
+
+path:       db    '/st2/'
+file:       ; filename will be appended here
 
 end:       ; That's all folks!
 
