@@ -13,3 +13,6 @@ with the keypads in a different group than the disk controller.
 Currently I run this on the 1802/Mini with the as-yet experimental Pixie
 Video card and an even more experimental keypad interface.
 
+If the file is not found at the pathname given, it is prefixed with /st2 and tried again. This way the Studio II binaries can be store under /st2 and found automatically just by their short name, making them easier to run.
+
+
