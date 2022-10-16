@@ -41,9 +41,9 @@ start:      org   2000h
             ; Build information
 
             db    10+80h                ; month
-            db    3                     ; day
+            db    14                    ; day
             dw    2022                  ; year
-            dw    2                     ; build
+            dw    3                     ; build
 
             db    'See github.com/dmadole/Elfos-st2 for more info',0
 
@@ -84,6 +84,9 @@ skpname:    lda   ra                    ; get next character
             ldi   0                     ;  character
             str   ra
 
+            inc   rb                    ; zero terminate copy of name
+            str   0
+
 
             ; We have a filename at this point so open the file to read
             ; the cartridge image in.
@@ -94,6 +97,10 @@ endname:    plo   r7                    ; set flags to zero
             phi   rd
             ldi   low fildes
             plo   rd
+
+            ldn   rf                    ; if absolute path, try just that
+            smi   '/'
+            lbz   direct
 
             sep   scall                 ; open file for read
             dw    o_open
@@ -108,7 +115,34 @@ endname:    plo   r7                    ; set flags to zero
             dw    o_open
             lbnf  opened
 
-            sep   scall                 ; fail if unable to open
+            ldi   high ext              ; pointer to .st2 extension
+            phi   rf
+            ldi   low ext
+            plo   rf
+
+copyext:    lda   rf                    ; append to copy
+            str   rb
+            inc   rb
+            lbnz  copyext
+
+            ldi   high file             ; try name with .st2 extension
+            phi   rf
+            ldi   low file
+            plo   rf
+
+            sep   scall                 ; open file for read
+            dw    o_open
+            lbnf  opened
+
+            ldi   high path             ; try prefixed name with .st2 
+            phi   rf
+            ldi   low path
+            plo   rf
+
+direct:     sep   scall                 ; open file for read
+            dw    o_open
+            lbnf  opened
+
             dw    o_inmsg
             db    'Unable to open input file',13,10,0
 
@@ -525,6 +559,8 @@ rom:        db    090h,0b1h,0b4h,0a5h,0abh,0f8h,008h,0b2h
             db    000h,060h,004h,027h,0bch,078h,001h,070h
             db    0ebh,017h,024h,04ch,0f1h,068h,006h,027h
             db    0bch,068h,004h,027h,0bch,017h,024h,0bbh
+
+ext:        db    '.st2',0
 
 path:       db    '/st2/'
 file:       ; filename will be appended here
